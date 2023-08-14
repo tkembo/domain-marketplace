@@ -1,5 +1,9 @@
 <?php
 
+if (!defined('WHMCS')) {
+    define('WHMCS', true);
+}
+
 use WHMCS\Database\Capsule;
 
 // Require the necessary files

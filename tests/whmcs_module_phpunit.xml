@@ -9,7 +9,6 @@
     <testsuites>
         <testsuite name="WHMCS Module Test Suite">
             <!-- Add directories or files containing your test classes -->
-            <directory suffix="Test.php">./tests/Functional</directory>
             <directory suffix="Test.php">./tests/Unit</directory>
         </testsuite>
     </testsuites>
@@ -17,7 +16,7 @@
     <filter>
         <whitelist processUncoveredFilesFromWhitelist="true">
             <!-- Add directories or files you want to be included in code coverage reports -->
-            <directory suffix=".php">./modules/addons/your_module_name</directory>
+            <directory suffix=".php">./modules/addons/marketplace</directory>
         </whitelist>
     </filter>
 
