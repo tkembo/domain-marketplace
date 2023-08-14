@@ -11,13 +11,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Setup PHP with ionCube Loader
+    - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.1'
-        extensions: mbstring, pdo, mysqli, ioncube # added ioncube to the list
-        ini-values: zend_extension=ioncube_loader_lin_8.1.so # load the ionCube extension for PHP 8.1
+        extensions: mbstring, pdo, mysqli
         coverage: none
+
+    - name: Install ionCube Loader
+      run: |
+        wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
+        tar -xvzf ioncube_loaders_lin_x86-64.tar.gz
+        echo "zend_extension=$PWD/ioncube/ioncube_loader_lin_8.1.so" >> $PHP_INI_DIR/php.ini
+
+
 
     - name: Install Dependencies
       run: composer install
