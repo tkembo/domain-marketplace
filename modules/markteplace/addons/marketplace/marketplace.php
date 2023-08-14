@@ -77,6 +77,7 @@ function marketplace_config() {
          $table->string('domain');
          $table->string('status');
          $table->decimal('starting_price', 10, 2);
+         $table->float('final_price');
          $table->dateTime('end_date');
          $table->timestamps();
      });
@@ -330,16 +331,16 @@ function marketplace_deactivate() {
      ];
  }
 
- // Function to get exchange rate between two currencies
- function get_exchange_rate($fromCurrency, $toCurrency) {
-     // Implement the logic to retrieve the exchange rate
-     // This could involve calling an external API or querying a table of exchange rates
-     // Return false if the currency is invalid or unsupported
-
-     // Example:
-     return 1.12; // Example exchange rate
- }
-
+ // // Function to get exchange rate between two currencies
+ // function get_exchange_rate($fromCurrency, $toCurrency) {
+ //     // Implement the logic to retrieve the exchange rate
+ //     // This could involve calling an external API or querying a table of exchange rates
+ //     // Return false if the currency is invalid or unsupported
+ //
+ //     // Example:
+ //     return 1.12; // Example exchange rate
+ // }
+ //
 
  /**
   * Function to handle Seller Fees
@@ -1003,9 +1004,27 @@ function marketplace_deactivate() {
              ];
      }
 
-     // Logic to send the notification to the user, such as sending an email, adding a database record, etc.
-     // For example:
-     // Capsule::table('marketplace_notifications')->insert(['user_id' => $user_id, 'message' => $message]);
+     // Implement rate limiting logic (pseudo code)
+     // if (rateLimitReached($user_id)) {
+     //     return [
+     //         'status' => 'error',
+     //         'description' => 'Too many notifications in a short time.',
+     //     ];
+     // }
+
+     // Insert the notification into a database table
+     try {
+         Capsule::table('marketplace_notifications')->insert(['user_id' => $user_id, 'message' => $message]);
+     } catch (Exception $e) {
+         // Log the error for further analysis
+         error_log($e->getMessage());
+         return [
+             'status' => 'error',
+             'description' => 'Failed to send notification.',
+         ];
+     }
+
+     // The actual mechanism for sending notifications (e.g., email, SMS) would be implemented here.
 
      return [
          'status' => 'success',
@@ -1018,112 +1037,221 @@ function marketplace_deactivate() {
   * Function to perform administrative actions
   */
   function marketplace_admin_actions($action, $parameters) {
-     // Check if the current user has administrative privileges
-     if (!is_admin_user()) {
-         return [
-             'status' => 'error',
-             'message' => 'You do not have permission to perform this action',
-         ];
-     }
-
-     // Perform the requested action
-     switch ($action) {
-         case 'moderate_auction':
-             return moderate_auction($parameters);
-         case 'bulk_manage_users':
-             return bulk_manage_users($parameters);
-         // Add other administrative actions here as needed
-         default:
-             return [
-                 'status' => 'error',
-                 'message' => 'Invalid administrative action',
-             ];
-     }
- }
-
- function moderate_auction($parameters) {
-     // Moderate an auction (e.g., suspend, remove, approve)
-     // $parameters should include 'auction_id' and 'action_type'
-
-     $auction_id = $parameters['auction_id'];
-     $action_type = $parameters['action_type'];
-
-     // Implement logic based on $action_type (e.g., 'suspend', 'remove', 'approve')
-
-     // Return the result
-     return [
-         'status' => 'success',
-         'message' => "Auction {$auction_id} has been {$action_type}",
-     ];
- }
-
- function bulk_manage_users($parameters) {
-     // Perform bulk management on users (e.g., activate, deactivate)
-     // $parameters should include 'user_ids' (an array of user IDs) and 'action_type'
-
-     $user_ids = $parameters['user_ids'];
-     $action_type = $parameters['action_type'];
-
-     // Implement logic based on $action_type (e.g., 'activate', 'deactivate')
-
-     // Return the result
-     return [
-         'status' => 'success',
-         'message' => 'Users have been ' . $action_type,
-     ];
- }
-
- function is_admin_user() {
-     // Implement logic to check if the current user has administrative privileges
-     // This could involve checking the user's role or permissions in the system
-     return true; // Replace with actual logic
- }
-
- function marketplace_security_compliance($user_id, $action) {
-    // Validate the user and action
-    if (!validate_user($user_id) || !in_array($action, ['security_check', 'privacy_update', 'compliance_review'])) {
+    // Check if the current user has administrative privileges
+    if (!is_admin_user()) {
         return [
             'status' => 'error',
-            'message' => 'Invalid user or action',
+            'message' => 'You do not have permission to perform this action',
         ];
     }
 
+    // Validate parameters
+    if (!is_array($parameters)) {
+        return [
+            'status' => 'error',
+            'message' => 'Invalid parameters provided',
+        ];
+    }
+
+    // Perform the requested action
+    $response = null;
     switch ($action) {
-        case 'security_check':
-            // Perform specific security checks (e.g., Two-factor authentication, password strength, etc.)
-            $result = perform_security_check($user_id);
+        case 'moderate_auction':
+            $response = moderate_auction($parameters);
             break;
-
-        case 'privacy_update':
-            // Handle privacy settings updates (e.g., data sharing preferences, GDPR compliance, etc.)
-            $result = update_privacy_settings($user_id);
+        case 'bulk_manage_users':
+            $response = bulk_manage_users($parameters);
             break;
-
-        case 'compliance_review':
-            // Perform compliance review (e.g., KYC verification, AML checks, etc.)
-            $result = review_compliance($user_id);
-            break;
-
+        // Add other administrative actions here as needed
         default:
-            return [
+            $response = [
                 'status' => 'error',
-                'message' => 'Unknown action',
+                'message' => 'Invalid administrative action',
             ];
     }
 
-    // Return the result based on the specific action performed
-    return $result;
+    // Log the action
+    log_admin_action($action, $parameters, $response);
+
+    return $response;
 }
 
-// Helper function to validate the user (e.g., check if the user exists in the database)
-function validate_user($user_id) {
-    global $db; // Assuming you have a global database connection
-    $query = "SELECT COUNT(*) FROM users WHERE user_id = ?";
-    $stmt = $db->prepare($query);
-    $stmt->execute([$user_id]);
-    $count = $stmt->fetchColumn();
-    return $count > 0;
+// Stub function for logging administrative actions
+function log_admin_action($action, $parameters, $response) {
+    // Log the action, parameters, and response to a file, database, etc.
+    // For simplicity, using error_log here. You might want a dedicated logger.
+    $logMessage = "Admin Action: $action, Parameters: " . json_encode($parameters) . ", Response: " . json_encode($response);
+    error_log($logMessage);
 }
+
+function moderate_auction($parameters) {
+    // Ensure necessary parameters are set
+    if (!isset($parameters['auction_id']) || !isset($parameters['action_type'])) {
+        return [
+            'status' => 'error',
+            'message' => 'Required parameters are missing',
+        ];
+    }
+
+    $auction_id = $parameters['auction_id'];
+    $action_type = $parameters['action_type'];
+
+    // Begin a database transaction
+    Capsule::beginTransaction();
+
+    try {
+        switch ($action_type) {
+            case 'suspend':
+                Capsule::table('marketplace_auctions')
+                    ->where('id', $auction_id)
+                    ->update(['status' => 'suspended']);
+                break;
+
+            case 'remove':
+                Capsule::table('marketplace_auctions')
+                    ->where('id', $auction_id)
+                    ->delete();
+                break;
+
+            case 'approve':
+                Capsule::table('marketplace_auctions')
+                    ->where('id', $auction_id)
+                    ->update(['status' => 'approved']);
+                break;
+
+            default:
+                // Rollback transaction and return an error if action type is not recognized
+                Capsule::rollBack();
+                return [
+                    'status' => 'error',
+                    'message' => 'Invalid action type',
+                ];
+        }
+
+        // Commit the changes
+        Capsule::commit();
+
+        // Return the result
+        return [
+            'status' => 'success',
+            'message' => "Auction {$auction_id} has been {$action_type}d", // Added 'd' for correct verb tense
+        ];
+    } catch (Exception $e) {
+        // If any errors occur, rollback the transaction and return the error
+        Capsule::rollBack();
+        return [
+            'status' => 'error',
+            'message' => 'An error occurred while moderating the auction.',
+        ];
+    }
+}
+
+function bulk_manage_users($parameters) {
+   // Ensure necessary parameters are set
+   if (!isset($parameters['user_ids']) || !is_array($parameters['user_ids']) || empty($parameters['user_ids'])
+       || !isset($parameters['action_type'])) {
+       return [
+           'status' => 'error',
+           'message' => 'Required parameters are missing or invalid',
+       ];
+   }
+
+   $user_ids = $parameters['user_ids'];
+   $action_type = $parameters['action_type'];
+
+   // Begin a database transaction
+   Capsule::beginTransaction();
+
+   try {
+       switch ($action_type) {
+           case 'activate':
+               Capsule::table('marketplace_users')
+                   ->whereIn('user_id', $user_ids)
+                   ->update(['status' => 'active']);
+               break;
+
+           case 'deactivate':
+               Capsule::table('marketplace_users')
+                   ->whereIn('user_id', $user_ids)
+                   ->update(['status' => 'inactive']);
+               break;
+
+           default:
+               // Rollback transaction and return an error if action type is not recognized
+               Capsule::rollBack();
+               return [
+                   'status' => 'error',
+                   'message' => 'Invalid action type',
+               ];
+       }
+
+       // Commit the changes
+       Capsule::commit();
+
+       // Return the result
+       return [
+           'status' => 'success',
+           'message' => 'Users have been ' . $action_type . 'd', // Added 'd' for correct verb tense
+       ];
+   } catch (Exception $e) {
+       // If any errors occur, rollback the transaction and return the error
+       Capsule::rollBack();
+       return [
+           'status' => 'error',
+           'message' => 'An error occurred while managing the users.',
+       ];
+   }
+}
+
+
+function is_admin_user() {
+   // Assuming there's a function called `get_current_user_id()` to retrieve the ID of the logged-in user
+   $user_id = get_current_user_id();
+
+   if (!$user_id) {
+       return false;
+   }
+
+   // Fetch the user's role from the database
+   $user = Capsule::table('marketplace_users')->where('user_id', $user_id)->first();
+
+   if (!$user) {
+       return false;
+   }
+
+   // Check if the user's role is "admin"
+   return $user->role === 'admin';
+}
+
+function marketplace_security_compliance($user_id, $action) {
+   $valid_actions = ['security_check', 'privacy_update', 'compliance_review'];
+
+   // Validate the user and action
+   if (!validate_user($user_id) || !in_array($action, $valid_actions)) {
+       return [
+           'status' => 'error',
+           'message' => 'Invalid user or action',
+       ];
+   }
+
+   switch ($action) {
+       case 'security_check':
+           return perform_security_check($user_id);
+
+       case 'privacy_update':
+           return update_privacy_settings($user_id);
+
+       case 'compliance_review':
+           return review_compliance($user_id);
+   }
+}
+
+function validate_user($user_id) {
+   // Fetch the user from the database
+   $user = Capsule::table('marketplace_users')->where('user_id', $user_id)->first();
+   return $user ? true : false;
+}
+
 
 // Helper function to perform the necessary security checks
 function perform_security_check($user_id) {

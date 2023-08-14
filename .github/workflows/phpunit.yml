@@ -1,0 +1,26 @@
+name: Run PHPUnit Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup PHP with ionCube Loader
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, pdo, mysqli, ioncube # added ioncube to the list
+        ini-values: zend_extension=ioncube_loader_lin_8.1.so # load the ionCube extension for PHP 8.1
+        coverage: none
+
+    - name: Install Dependencies
+      run: composer install
+
+    - name: Run Tests
+      run: ./vendor/bin/phpunit --configuration tests/whmcs_module_phpunit.xml

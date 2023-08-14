@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php"
+         colors="true"
+         verbose="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         stopOnFailure="false">
+    <testsuites>
+        <testsuite name="WHMCS Module Test Suite">
+            <!-- Add directories or files containing your test classes -->
+            <directory suffix="Test.php">./tests/Functional</directory>
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <!-- Add directories or files you want to be included in code coverage reports -->
+            <directory suffix=".php">./modules/addons/your_module_name</directory>
+        </whitelist>
+    </filter>
+
+    <!-- Setup PHP configurations if needed -->
+    <php>
+        <ini name="error_reporting" value="-1"/>
+        <env name="bootstrap" value="tests/bootstrap.php"/>
+        <!-- Any other custom PHP configurations -->
+    </php>
+
+    <!-- Setup logging, especially useful for CI/CD environments -->
+    <logging>
+        <log type="tap" target="tests/logs/log.tap"/>
+        <log type="junit" target="tests/logs/log.junit.xml"/>
+        <log type="coverage-html" target="tests/logs/coverage" charset="UTF-8"/>
+        <log type="coverage-clover" target="tests/logs/clover.xml"/>
+        <log type="coverage-text" target="tests/logs/coverage.txt" showUncoveredFiles="true"/>
+    </logging>
+</phpunit>
