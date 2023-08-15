@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php"
+<phpunit bootstrap="bootstrap.php"
          colors="true"
          verbose="true"
          convertErrorsToExceptions="true"
@@ -23,7 +23,7 @@
     <!-- Setup PHP configurations if needed -->
     <php>
         <ini name="error_reporting" value="-1"/>
-        <env name="bootstrap" value="tests/bootstrap.php"/>
+        <env name="bootstrap" value="bootstrap.php"/>
         <!-- Any other custom PHP configurations -->
     </php>
 

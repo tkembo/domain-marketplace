@@ -31,7 +31,7 @@ By participating in this project, you are expected to uphold our [Code of Conduc
 1. Fork the repository to your GitHub account.
 2. Clone your fork to your local machine:
    ```bash
-   git clone https://github.com/your-github-username/domain-marketplace.git
+   git clone https://github.com/tkembo/domain-marketplace.git
    ```
 
 3. Navigate to the project directory:
