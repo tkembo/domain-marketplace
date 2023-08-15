@@ -5,11 +5,8 @@
         "php": "^8.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "@stable"
-    },
-    "autoload": {
-        "psr-4": {
-            "Marketplace\\": "src/"
-        }
+        "php": "^8.1",
+        "phpunit/phpunit": "@stable",
+        "illuminate/database": "^10.18"
     }
 }

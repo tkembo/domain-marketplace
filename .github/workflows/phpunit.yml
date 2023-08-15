@@ -17,15 +17,7 @@ jobs:
         php-version: '8.1'
         extensions: mbstring, pdo, mysqli, ioncube
         coverage: none
-
-    # - name: Install ionCube Loader
-    #   run: |
-    #     wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
-    #     tar -xvzf ioncube_loaders_lin_x86-64.tar.gz
-    #     echo "zend_extension=$PWD/ioncube/ioncube_loader_lin_8.1.so" >> $PHP_INI_DIR/php.ini
-
-
-
+        
     - name: Install Dependencies
       run: composer install
 

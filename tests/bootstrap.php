@@ -4,7 +4,8 @@ if (!defined('WHMCS')) {
     define('WHMCS', true);
 }
 
-use WHMCS\Database\Capsule;
+// use WHMCS\Database\Capsule;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 // Require the necessary files
 require_once dirname(__DIR__) . '/modules/marketplace/addons/marketplace/marketplace.php';
@@ -46,5 +47,3 @@ class WHMCSTestCase extends \PHPUnit\Framework\TestCase {
         $this->capsule = null;
     }
 }
-
-// Any other necessary bootstrap code...
