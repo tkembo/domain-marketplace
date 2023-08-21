@@ -1,0 +1,25 @@
+WHMCS Domain Marketplace Module - Requirements Document
+
+Domain Listing
+
+Registered users (sellers) should be able to list domains for auction that they own on the platform.
+Sellers are listing domains they have transferred to the platform, so there's no need for additional ownership verification.
+Each domain listing should include: domain name, auction type (English or Dutch), starting bid, current highest bid, and time remaining.
+Sellers should be able to set a 'Buy Now' price for immediate purchase.
+Sellers should be able to set the duration of the auction in days.
+Domain Information: Sellers can provide a brief description or history about the domain.
+Visibility: Sellers can decide if their listing is public (visible to all users) or private (visible only to those with a direct link).
+Bidding Process
+
+Only registered users (bidders) can bid.
+Each new bid must be higher than the current bid.
+Bidding Increments: Define minimum bidding increments to ensure fair competition.
+Notifications: Bidders should receive notifications when they are outbid.
+Proxy Bidding: Bidders can set a maximum bid amount, allowing the system to automatically bid on their behalf until this maximum is reached.
+'Buy Now' option allows immediate purchase of the domain at the set price, bypassing the auction process.
+Auction End
+
+At the end of the auction, the domain is automatically assigned to the highest bidder.
+Payment Methods: The module will rely on WHMCS for handling payments and won't have its own payment method.
+Domain Transfer: Outline the process for domain transfer once the auction ends. Specify whether this will be manual or if there will be integration with domain registrars for automated transfers.
+Note: This module will rely on WHMCS for payment processing, currency support, and user balance management. The initial version will not include user ratings, dispute resolution, or analytics features.

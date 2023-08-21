@@ -77,3 +77,21 @@
 
  ## Support
  If you have any questions or issues with the add-on, please raise an issue in this GitHub repository.
+
+
+## Installation
+- Download the module from the provided link.
+- Upload the module to your WHMCS installation directory.
+- Navigate to the WHMCS admin panel and activate the module.
+
+## Configuration
+- After activation, configure the module settings as per your requirements.
+
+## User Guide
+- Users can list their domains for auctions, place bids on active auctions, and view auction details.
+- Admins can oversee all auctions, approve, suspend or remove auctions if necessary.
+
+## Troubleshooting
+- Ensure your WHMCS installation meets the module's requirements.
+- Check the logs for any errors or issues.
+- Contact support if any issues persist.

@@ -1,6 +1,328 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+session_start();
+
 use WHMCS\Database\Capsule;
+
+$action = $_REQUEST['action'] ?? null;
+$format = $_REQUEST['format'] ?? 'html';  // Default to HTML
+// Initialize a Smarty instance
+$smarty = new Smarty;
+
+// Assign the path to your module's templates
+$smarty->assign('module_templates_path', ROOTDIR . '/modules/addons/marketplace/templates/');
+$currentTemplate = $whmcs->get_config('Template');
+
+switch($action) {
+  case 'checkforsale':
+  if (!isset($_SESSION['uid'])) {
+      header('Location: login.php');
+      exit;
+  }
+  $domainId = $_GET['domain'];
+  $userId = $_SESSION['uid'];
+
+  if (!is_user_owner_of_domain($userId, $domainId)) {
+      $message = ['status' => 'error', 'message' => 'You are not authorized to perform this action.'];
+  } else {
+      $isForSale = check_domain_for_sale($domainId); // This function should return a boolean or similar indicating if the domain is for sale
+      if ($isForSale) {
+          $message = ['status' => 'info', 'message' => 'This domain is currently listed for sale.'];
+      } else {
+          $message = ['status' => 'info', 'message' => 'This domain is not listed for sale.'];
+      }
+  }
+
+  $smarty->assign('message', $message);
+  $smarty->assign('page', 'check_domain_sale_status');
+  $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+  $smarty->setTemplateDir($templateDir);
+  $smarty->display('marketplace.tpl');
+  break;
+
+
+    case 'listAuctions':
+      if (!Capsule::schema()->hasTable('marketplace_auctions')) {
+          // Table doesn't exist, so return early
+          break;
+      }
+      $auctions = Capsule::table('marketplace_auctions')->get();
+      if (isJsonRequest($format)) {
+          echo json_encode($auctions);
+      } else {
+          $smarty->assign('auctions', $auctions);
+          $smarty->assign('page', 'auctions');
+          $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+      }
+      break;
+
+      case 'placeBid':
+      $user_id = $_REQUEST['user_id'] ?? null;
+      $auction_id = $_REQUEST['auction_id'] ?? null;
+      $amount = $_REQUEST['amount'] ?? null;
+      $currency = $_REQUEST['currency'] ?? null;
+
+      if ($user_id && $auction_id && $amount && $currency) {
+          Capsule::table('marketplace_bids')->insert([
+              'auction_id' => $auction_id,
+              'user_id' => $user_id,
+              'amount' => $amount,
+              'currency' => $currency,
+              'created_at' => date('Y-m-d H:i:s'),
+              'updated_at' => date('Y-m-d H:i:s'),
+          ]);
+
+          $message = ['status' => 'success'];
+      } else {
+          $message = ['status' => 'error', 'message' => 'Invalid data provided.'];
+      }
+
+      if (isJsonRequest($format)) {
+          echo json_encode($message);
+      } else {
+          $smarty->assign('message', $message);
+          $smarty->assign('page', 'place_bid'); // Assuming you have a place_bid template
+          $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+      }
+      break;
+
+
+      case 'viewBalance':
+        $user_id = $_REQUEST['user_id'] ?? null;
+
+        if ($user_id) {
+            $balance = Capsule::table('marketplace_account_balances')->where('user_id', $user_id)->first();
+
+            if ($balance) {
+                $message = ['status' => 'success', 'balance' => $balance->balance]; // Assuming the returned object has a 'balance' property
+            } else {
+                $message = ['status' => 'error', 'message' => 'No balance data found for the user.'];
+            }
+
+        } else {
+            $message = ['status' => 'error', 'message' => 'User ID not provided.'];
+        }
+
+        if (isJsonRequest($format)) {
+            echo json_encode($message);
+        } else {
+            $smarty->assign('message', $message);
+            $smarty->assign('page', 'view_balance'); // Assuming you have a view_balance template
+            $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+        }
+        break;
+
+
+      case 'leaveFeedback':
+        $user_id = $_REQUEST['user_id'] ?? null;
+        $auction_id = $_REQUEST['auction_id'] ?? null;
+        $rating = $_REQUEST['rating'] ?? null;
+        $comments = $_REQUEST['comments'] ?? null;
+
+        if ($user_id && $auction_id && $rating && $comments) {
+            Capsule::table('marketplace_feedback')->insert([
+                'auction_id' => $auction_id,
+                'user_id' => $user_id,
+                'rating' => $rating,
+                'comments' => $comments,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $message = ['status' => 'success', 'message' => 'Feedback submitted successfully.'];
+        } else {
+            $message = ['status' => 'error', 'message' => 'Invalid data provided.'];
+        }
+
+        if (isJsonRequest($format)) {
+            echo json_encode($message);
+        } else {
+            $smarty->assign('message', $message);
+            $smarty->assign('page', 'leave_feedback'); // Assuming you have a leave_feedback template
+            $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+        }
+        break;
+
+
+      case 'sell':
+        try {
+          if (!isset($_SESSION['uid'])) {
+              if (isJsonRequest($format)) {
+                  echo json_encode(['status' => 'error', 'message' => 'User not logged in.']);
+              } else {
+                  header('Location: login.php');
+              }
+              exit;
+          }
+          $domainId = $_GET['domain'];
+          $userId = $_SESSION['uid'];
+
+          if (!is_user_owner_of_domain($userId, $domainId)) {
+              $message = ['status' => 'error', 'message' => 'You are not authorized to perform this action.'];
+          } else {
+              set_domain_for_sale($domainId);
+              $message = ['status' => 'success', 'message' => 'Domain set for sale successfully.'];
+          }
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+        }
+        if (isJsonRequest($format)) {
+            echo json_encode($message);
+        } else {
+          $smarty->assign('message', $message);
+          $smarty->assign('page', 'sell_domain');
+          $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+          $smarty->setTemplateDir($templateDir);
+          $smarty->display('marketplace.tpl');
+        }
+        break;
+
+    case 'getUserAuctions':
+        if (!isset($_SESSION['uid'])) {
+            if (isJsonRequest($format)) {
+                echo json_encode(['status' => 'error', 'message' => 'User not logged in.']);
+            } else {
+                header('Location: /login.php');
+            }
+            exit;
+        }
+
+        $userAuctions = get_user_auctions($_SESSION['uid']);
+
+        if (isJsonRequest($format)) {
+            echo json_encode(['userAuctions' => $userAuctions]);
+        } else {
+            $smarty->assign('userAuctions', $userAuctions);
+            $smarty->assign('page', 'user_auctions'); // Assuming you have a user_auctions template
+            $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+        }
+        break;
+
+
+        case 'getAccountBalance':
+    if (!isset($_SESSION['uid'])) {
+        if (isJsonRequest($format)) {
+            echo json_encode(['status' => 'error', 'message' => 'User not logged in.']);
+        } else {
+            header('Location: /login.php');
+        }
+        exit;
+    }
+
+    $accountBalance = fetch_account_balance($_SESSION['uid']);
+    $transactionHistory = fetch_transaction_history($_SESSION['uid']);
+
+    if (isJsonRequest($format)) {
+        echo json_encode(['accountBalance' => $accountBalance, 'transactionHistory' => $transactionHistory]);
+    } else {
+        $smarty->assign('accountBalance', $accountBalance);
+        $smarty->assign('transactionHistory', $transactionHistory);
+        $smarty->assign('page', 'account_balance'); // Assuming you have an account_balance template
+        $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+    }
+    break;
+
+case 'getAllAuctions':
+    $auctions = marketplace_search_auctions([]);
+
+    if (isJsonRequest($format)) {
+        echo json_encode(['auctions' => $auctions]);
+    } else {
+        $smarty->assign('auctions', $auctions);
+        $smarty->assign('page', 'all_auctions'); // Assuming you have an all_auctions template
+        $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+    }
+    break;
+
+    case 'getFeedback':
+$auctionId = $_GET['auction_id'] ?? null;
+if (!$auctionId) {
+    if (isJsonRequest($format)) {
+        echo json_encode(['status' => 'error', 'message' => 'Auction ID not provided.']);
+    } else {
+        $smarty->assign('error', 'Auction ID not provided.');
+        $smarty->display('marketplace_error.tpl'); // Adjust to your error template path
+    }
+    exit;
+}
+
+$feedback = marketplace_user_feedback($auctionId, $_SESSION['uid'], null, null);
+
+if (isJsonRequest($format)) {
+    echo json_encode(['feedback' => $feedback]);
+} else {
+    $smarty->assign('feedback', $feedback);
+    $smarty->assign('page', 'auction_feedback'); // Assuming you have an auction_feedback template
+    $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+}
+break;
+
+case 'getAuctionDetails':
+$auctionId = $_GET['auction_id'] ?? null;
+if (!$auctionId) {
+    if (isJsonRequest($format)) {
+        echo json_encode(['status' => 'error', 'message' => 'Auction ID not provided.']);
+    } else {
+        $smarty->assign('error', 'Auction ID not provided.');
+        $smarty->display('marketplace_error.tpl'); // Adjust to your error template path
+    }
+    exit;
+}
+
+$auctionDetails = marketplace_view_auction($auctionId);
+
+if (isJsonRequest($format)) {
+    echo json_encode(['auctionDetails' => $auctionDetails]);
+} else {
+    $smarty->assign('auctionDetails', $auctionDetails);
+    $smarty->assign('page', 'auction_details'); // Assuming you have an auction_details template
+    $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+}
+break;
+
+default:
+  if (!Capsule::schema()->hasTable('marketplace_auctions')) {
+    // Table doesn't exist, so return early
+    break;
+  }
+  $auctions = Capsule::table('marketplace_auctions')->get();
+  if (isJsonRequest($format)) {
+      echo json_encode($auctions);
+  } else {
+      $smarty->assign('auctions', $auctions);
+      $smarty->assign('page', 'auctions');
+      $templateDir = ROOTDIR . '/templates/' . $currentTemplate . '/';
+$smarty->setTemplateDir($templateDir);
+$smarty->display('marketplace.tpl');
+  }
+  break;
+}
+
+// This function checks if the request is for JSON format
+function isJsonRequest($format) {
+    return $format === 'json';
+}
 
 function get_domains_for_sale() {
     return Capsule::table('marketplace_domains')
@@ -175,6 +497,11 @@ function marketplace_deactivate() {
          ];
      }
 
+     if (!Capsule::schema()->hasTable('marketplace_auctions')) {
+         // Table doesn't exist, so return early
+         return;
+     }
+
      // Retrieve auction details
      $auction = Capsule::table('marketplace_auctions')->where('id', $auction_id)->first();
      if (!$auction || $auction->status != 'active') {
@@ -231,6 +558,11 @@ function marketplace_deactivate() {
             'status' => 'error',
             'description' => 'Invalid duration',
         ];
+    }
+
+    if (!Capsule::schema()->hasTable('marketplace_auctions')) {
+        // Table doesn't exist, so return early
+        return;
     }
 
     // Retrieve the auction from the database
@@ -1085,6 +1417,12 @@ function log_admin_action($action, $parameters, $response) {
 }
 
 function moderate_auction($parameters) {
+
+  if (!Capsule::schema()->hasTable('marketplace_auctions')) {
+      // Table doesn't exist, so return early
+      return;
+  }
+
     // Ensure necessary parameters are set
     if (!isset($parameters['auction_id']) || !isset($parameters['action_type'])) {
         return [
@@ -1306,80 +1644,4 @@ function review_compliance($user_id) {
      ];
  }
 
-/*
-marketplace.php?action=listAuctions
-marketplace.php?action=placeBid
-marketplace.php?action=viewBalance
-marketplace.php?action=leaveFeedback
-*/
-
-// ... your existing functions ...
-
-$action = $_REQUEST['action'] ?? null;
-
-switch($action) {
-    case 'listAuctions':
-        $auctions = Capsule::table('marketplace_auctions')->get();
-        echo json_encode($auctions); // Return the data as JSON for frontend processing
-        break;
-
-    case 'placeBid':
-        $user_id = $_REQUEST['user_id'] ?? null;
-        $auction_id = $_REQUEST['auction_id'] ?? null;
-        $amount = $_REQUEST['amount'] ?? null;
-        $currency = $_REQUEST['currency'] ?? null;
-
-        if ($user_id && $auction_id && $amount && $currency) {
-            Capsule::table('marketplace_bids')->insert([
-                'auction_id' => $auction_id,
-                'user_id' => $user_id,
-                'amount' => $amount,
-                'currency' => $currency,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-            echo json_encode(['status' => 'success']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid data provided.']);
-        }
-        break;
-
-    case 'viewBalance':
-        $user_id = $_REQUEST['user_id'] ?? null;
-        if ($user_id) {
-            $balance = Capsule::table('marketplace_account_balances')->where('user_id', $user_id)->first();
-            echo json_encode($balance);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'User ID not provided.']);
-        }
-        break;
-
-    case 'leaveFeedback':
-        $user_id = $_REQUEST['user_id'] ?? null;
-        $auction_id = $_REQUEST['auction_id'] ?? null;
-        $rating = $_REQUEST['rating'] ?? null;
-        $comments = $_REQUEST['comments'] ?? null;
-
-        if ($user_id && $auction_id && $rating && $comments) {
-            Capsule::table('marketplace_feedback')->insert([
-                'auction_id' => $auction_id,
-                'user_id' => $user_id,
-                'rating' => $rating,
-                'comments' => $comments,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-            echo json_encode(['status' => 'success']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid data provided.']);
-        }
-        break;
-
-    default:
-        echo json_encode(['status' => 'error', 'message' => 'Invalid action provided.']);
-        break;
-}
-
-
- // Include other functions
 require_once __DIR__ . '/cron.php';

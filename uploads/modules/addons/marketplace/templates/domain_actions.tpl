@@ -1,3 +1,4 @@
+<!-- domain_auctions.tpl -->
 {foreach $domains as $domain}
     <div>
         <p>{$domain.domain}</p>

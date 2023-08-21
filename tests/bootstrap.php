@@ -4,8 +4,8 @@ if (!defined('WHMCS')) {
     define('WHMCS', true);
 }
 
-// use WHMCS\Database\Capsule;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use WHMCS\Database\Capsule;
+// use Illuminate\Database\Capsule\Manager as Capsule;
 
 // Require the necessary files
 require_once dirname(__DIR__) . '/modules/marketplace/addons/marketplace/marketplace.php';
